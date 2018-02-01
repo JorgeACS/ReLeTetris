@@ -204,6 +204,25 @@ var ZStates [4][16]int = [4][16]int{
 		0, 0, 0, 0,
 	},
 }
+
+//--------------Playfield---------------
+//Structure for the playfield
+//Contains the stack, which is composed of one or more Tetrominos
+struct Playfield{
+	stack int
+
+}
+//--------------Tetromino---------------
+//Structure for a tetromino piece
+//Contains its value, state, and it's position using (x,y) coordinates
+struct Tetromino{
+	letter string;
+	state int;
+	x int;
+	y int;
+}
+
+
 func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
