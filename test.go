@@ -9,7 +9,13 @@ import (
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 )
-var block_size := 16.0
+var BLOCK_SIZE := 16.0
+var MINO_PICTURE, err
+var MINO_SPRITE 
+var GRID_SIZE := 4
+var PLAYFIELD_WIDTH := 10
+var PLAYFIELD_HEIGHT := 22
+var PLAYFIELD_MAX_HEIGHT := 40
 var IStates [4][16]int = [4][16]int{
 	{
 		0, 0, 0, 0,
