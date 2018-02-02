@@ -3,19 +3,24 @@ package main
 import (
 	"image"
 	"os"
-
 	_ "image/png"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 )
-var BLOCK_SIZE := 16.0
-var MINO_PICTURE, err
-var MINO_SPRITE 
-var GRID_SIZE := 4
-var PLAYFIELD_WIDTH := 10
-var PLAYFIELD_HEIGHT := 22
-var PLAYFIELD_MAX_HEIGHT := 40
+const BLOCK_SIZE = 16.0
+const MINO_PICTURE
+const err
+const MINO_SPRITE 
+const GRID_SIZE = 4
+const PLAYFIELD_WIDTH = 10
+const PLAYFIELD_HEIGHT = 22
+const PLAYFIELD_MAX_HEIGHT = 40
+const INITIAL_STATE = 0
+const MIN_GRAVITY = 0.125
+const MAX_GRAVITY = 20
+const NUM_PIECES = 7
+const NEXT_LENGTH = 5
 var IStates [4][16]int = [4][16]int{
 	{
 		0, 0, 0, 0,
