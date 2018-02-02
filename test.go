@@ -1,17 +1,17 @@
 package main
 
 import (
-	"image"
-	"os"
-	_ "image/png"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
+	"image"
+	_ "image/png"
+	"math/rand"
+	"os"
+	"time"
 )
+
 const BLOCK_SIZE = 16.0
-const MINO_PICTURE
-const err
-const MINO_SPRITE 
 const GRID_SIZE = 4
 const PLAYFIELD_WIDTH = 10
 const PLAYFIELD_HEIGHT = 22
@@ -21,6 +21,7 @@ const MIN_GRAVITY = 0.125
 const MAX_GRAVITY = 20
 const NUM_PIECES = 7
 const NEXT_LENGTH = 5
+
 var IStates [4][16]int = [4][16]int{
 	{
 		0, 0, 0, 0,
@@ -210,24 +211,59 @@ var ZStates [4][16]int = [4][16]int{
 	},
 }
 
+//----------------Game------------------
+//Structure for the game
+//contains the playfield plus other neccesary values
+type Game struct {
+	playfield    Playfield
+	gravity      float32  //Rate at which pieces fall (X cells per frame)
+	score        int      //Player score
+	currentPiece string   // Piece on the playfield at the moment
+	hold         string   // Piece currently held
+	currentBag   []string // Currrent piece bag
+	nextBag      []string // Next piece bag
+	bagIndex     int
+	next         []string // Piece preview
+	canSwap      bool     // Determines if the current piece can be swapped
+	pieceHeld    bool     // Determines if there is a held piece
+	timer        int64    // Time since game started in milliseconds
+	timePast     int64    //Time past in milliseconds
+}
+
+func createGame() Game {
+	bag1 := generate7PieceBag()
+	bag2 := generate7PieceBag()
+	return Game{createPlayfield(), MIN_GRAVITY, 0, bag1[0], "", bag1, bag2, 0, bag1[1:6], true, false, 0, 0}
+}
+
+func updateGame(game Game, milliseconds int64) {
+	game.timePast += milliseconds
+	if float32(game.timePast/1000) > game.gravity {
+		//pushPieceDown(Tetromino)
+	}
+
+}
+
 //--------------Playfield---------------
 //Structure for the playfield
 //Contains the stack, which is composed of one or more Tetrominos
-struct Playfield{
-	stack int
-
+type Playfield struct {
+	stack []Tetromino
 }
+
 //--------------Tetromino---------------
 //Structure for a tetromino piece
 //Contains its value, state, and it's position using (x,y) coordinates
-struct Tetromino{
-	letter string;
-	state int;
-	x int;
-	y int;
+type Tetromino struct {
+	letter string
+	state  int
+	x      int
+	y      int
 }
 
-
+func pushPieceDown(piece Tetromino) {
+	piece.y -= 1
+}
 func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
@@ -241,66 +277,87 @@ func run() {
 
 	win.Clear(colornames.Skyblue)
 
-	pic, err := loadPicture("block.png")
+	MINO_PICTURE, err := loadPicture("block.png")
+	MINO_SPRITE := pixel.NewSprite(MINO_PICTURE, MINO_PICTURE.Bounds())
 	if err != nil {
 		panic(err)
 	}
-	
-	sprite := pixel.NewSprite(pic, pic.Bounds())
-	mat := pixel.IM
-	mat = mat.Moved(win.Bounds().Center())
-	mat = mat.Moved(pixel.V(-400,600))
-	mat = mat.ScaledXY(win.Bounds().Center(), pixel.V(0.25, 0.25))
-	for i := 0; i < 22; i++{
-		for j := 0; j < 10; j++ {
-			sprite.Draw(win,mat)
-			mat = mat.Moved(pixel.V(block_size,0))
-		}
-		mat = mat.Moved(pixel.V(-block_size*10,-block_size))
-	}
+	game := createGame()
+	last := time.Now()
 	for !win.Closed() {
+		//Draw
+		mat := pixel.IM
+		mat = mat.Moved(win.Bounds().Center())
+		mat = mat.Moved(pixel.V(-400, 600))
+		mat = mat.ScaledXY(win.Bounds().Center(), pixel.V(0.25, 0.25))
+		for i := 0; i < PLAYFIELD_HEIGHT; i++ {
+			for j := 0; j < PLAYFIELD_WIDTH; j++ {
+				MINO_SPRITE.Draw(win, mat)
+				mat = mat.Moved(pixel.V(BLOCK_SIZE, 0))
+			}
+			mat = mat.Moved(pixel.V(-BLOCK_SIZE*PLAYFIELD_WIDTH, -BLOCK_SIZE))
+		}
+		//Update
+		updateGame(game, time.Since(last).Nanoseconds()*1000000)
 		win.Update()
 	}
+
 }
 
-func positionBottomLeft(mat){
+func generate7PieceBag() []string {
+	bag := []string{"I", "O", "T", "L", "J", "S", "Z"}
+	shuffleBag(bag, 100)
+	return bag
+
+}
+func shuffleBag(bag []string, shuffles int) {
+	for aux := 0; aux < shuffles; aux++ {
+		i := rand.Intn(NUM_PIECES)
+		j := rand.Intn(NUM_PIECES)
+		bag[i], bag[j] = bag[j], bag[i]
+	}
+
+}
+func createPlayfield() Playfield {
+	return Playfield{stack: []Tetromino{}}
+}
+func pushTetromino(playfield Playfield, piece Tetromino) {
+	playfield.stack = append(playfield.stack, piece)
+}
+
+//positions the tettromino grid on the bottom left corner
+func positionBottomLeft(win pixelgl.Window, mat pixel.Matrix) pixel.Matrix {
 	mat = mat.Moved(win.Bounds().Center())
-	mat = mat.Moved(pixel.V(-400,600))
-	for i:=0;i < 22-4;i++{
-		mat = mat.Moved(pixel.V(0,-block_size))
+	mat = mat.Moved(pixel.V(-400, 600))
+	for i := 0; i < PLAYFIELD_HEIGHT-GRID_SIZE; i++ {
+		mat = mat.Moved(pixel.V(0, -BLOCK_SIZE))
 	}
 	return mat
 }
 
-func moveTetrominoGrid(mat,xMagnitude=1,yMagnitude=1){
-	vector = pixel.V(block_size*xMagnitude,block_size*yMagnitude))
+func moveTetrominoGrid(mat pixel.Matrix, xMagnitude int, yMagnitude int) pixel.Matrix {
+	vector := pixel.V(float64(BLOCK_SIZE*xMagnitude), float64(BLOCK_SIZE*yMagnitude*1.0))
 	mat = mat.Moved(vector)
 	return mat
 }
 
-func drawTetromino(tetromino,state,x,y){
-	mat := pixel.IM 
-	mat = positionBottomLeft(mat)
-	mat = moveTetrominoGrid(mat,x,y)
+/*
+func drawTetromino(win, piece Tetromino, state int, x int, y int) {
+	mat := pixel.IM
+	mat = positionBottomLeft(win, mat)
+	mat = moveTetrominoGrid(mat, piece.x, piece.y)
 
-}
-func createTetromino(letter){
-	switch letter{
-		case 'L':
-	        return Lstates[0]
-	    case 'J':
-	        return Jstates[0]
-	    case 'S':
-	        return Sstates[0]
-	    case 'Z':
-	        return Zstates[0]
-	    case 'T':
-	        return Tstates[0]
-	    case 'O':
-	        return Ostates[0]
-	    case 'I':
-	        return Istates[0]
+	for i := 0; i < GRID_SIZE; i++ {
+		for j := 0; j < GRID_SIZE; j++ {
+			if Tetromino.piece == 'S' {
+
+			}
+		}
 	}
+
+}*/
+func createTetromino(letter string) Tetromino {
+	return Tetromino{letter, 0, PLAYFIELD_WIDTH / 2, PLAYFIELD_HEIGHT}
 }
 func main() {
 	pixelgl.Run(run)
@@ -318,3 +375,9 @@ func loadPicture(path string) (pixel.Picture, error) {
 	}
 	return pixel.PictureDataFromImage(img), nil
 }
+
+/*
+	Ejemplo 4.2
+	Ejercicio 4.5 (paginas 65 y 66)
+	Ejercicio 4.9 (pagina 69)
+*/
